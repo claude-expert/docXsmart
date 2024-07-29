@@ -1,8 +1,9 @@
 import streamlit as st
 from ai71 import AI71
+import chardet
 
 # Access the API key from Streamlit secrets
-ai71_api_key = st.secrets["A171_API_KEY"]
+ai71_api_key = st.secrets["AI71_API_KEY"]
 
 # Initialize the AI71 client with the API key
 client = AI71(api_key=ai71_api_key)
@@ -84,46 +85,64 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Let the user upload a file via `st.file_uploader`.
+# uploaded_file = st.file_uploader(
+#     "Upload a document (.txt , .md , .docx or .pdf)", type=("txt", "md", "pdf", "docx")
+# )
+
+# Ask the user for a question via `st.text_area`.
+# question = st.text_area(
+#     "What do you need help with regarding the document?",
+#     placeholder="Can you give me a short summary?",
+#     disabled=not uploaded_file,
+# )
+
 uploaded_file = st.file_uploader(
     "Upload a document (.txt , .md , .docx or .pdf)", type=("txt", "md", "pdf", "docx")
 )
 
-# Ask the user for a question via `st.text_area`.
-question = st.text_area(
-    "What do you need help with regarding the document?",
-    placeholder="Can you give me a short summary?",
-    disabled=not uploaded_file,
-)
 
-if uploaded_file and question:
-    # Process the uploaded file and question.
-    document = uploaded_file.read().decode()
-    messages = [
-        {
-            "role": "user",
-            "content": f"Here's a document: {document} \n\n---\n\n {question}",
-        }
-    ]
+document = ""
+if uploaded_file:
+    try:
+        # Detect encoding
+        raw_data = uploaded_file.read()
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+
+        document = raw_data.decode(encoding)
+        st.success("File uploaded and decoded successfully!")
+    except Exception as e:
+        st.error(f"An error occurred while reading the file: {e}") 
+
+# if uploaded_file and question:
+#     # Process the uploaded file and question.
+#     document = uploaded_file.read().decode()
+    # messages = [
+    #     {
+    #         "role": "user",
+    #         "content": f"Here's a document: {document} \n\n---\n\n {question}",
+    #     }
+    # ]
 
     # Generate a response using the AI71 API.
-    with st.spinner("Generating response..."):
-        try:
-            response = client.chat.completions.create(
-                model="tiiuae/falcon-180b-chat",
-                messages=messages
-            )
+    # with st.spinner("Generating response..."):
+    #     try:
+    #         response = client.chat.completions.create(
+    #             model="tiiuae/falcon-180b-chat",
+    #             messages=messages
+    #         )
 
-            # Collect and concatenate response chunks
-            if response.choices and response.choices[0].message:
-                full_response = response.choices[0].message.content
+    #         # Collect and concatenate response chunks
+    #         if response.choices and response.choices[0].message:
+    #             full_response = response.choices[0].message.content
 
-                # Stream the full response to the chat using `st.write`
-                with st.chat_message("assistant"):
-                    st.markdown(full_response)
+    #             # Stream the full response to the chat using `st.write`
+    #             with st.chat_message("assistant"):
+    #                 st.markdown(full_response)
 
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+    #             st.session_state.messages.append({"role": "assistant", "content": full_response})
+    #     except Exception as e:
+    #         st.error(f"An error occurred: {e}")
 
 # Create a chat input field to allow the user to enter a message. This will display
 # automatically at the bottom of the page.
@@ -132,7 +151,12 @@ if prompt := st.chat_input("What do you need help with regarding your document?"
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-
+    messages = [
+        {
+            "role": "user",
+            "content": f"Here's a document: {document} \n\n---\n\n {prompt}",
+        }
+    ]
     # Generate a response using the AI71 API.
     with st.spinner("Generating response..."):
         try:
@@ -152,3 +176,10 @@ if prompt := st.chat_input("What do you need help with regarding your document?"
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
         except Exception as e:
             st.error(f"An error occurred: {e}")
+'''
+# TO DOs
+# 1. removed the text area, api should be called once for the doc
+# 2. decode issue because of the images, gifs in the doc
+# 3. language translation eg. what language this doc is in?
+# 4. dropdown option for the user, which lang to be converted in
+'''
