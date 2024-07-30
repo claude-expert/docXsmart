@@ -197,6 +197,6 @@ if prompt := st.chat_input("What do you need help with regarding your document?"
 # # 2. decode issue because of the images, gifs in the doc
 # # 3. dropdown option for the user, which lang to be converted in
 # To Dos,
-# 1. language translation eg. what language this doc is in?
-# 2. find Python library that can read images and text
+# 4. language translation eg. what language this doc is in?
+# 5. find Python library that can read images and text
 # '''
