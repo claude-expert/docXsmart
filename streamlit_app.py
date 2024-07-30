@@ -1,6 +1,8 @@
 import streamlit as st
 from ai71 import AI71
 import chardet
+import filetype
+import PyPDF2
 
 # Access the API key from Streamlit secrets
 ai71_api_key = st.secrets["AI71_API_KEY"]
@@ -104,12 +106,18 @@ uploaded_file = st.file_uploader(
 document = ""
 if uploaded_file:
     try:
-        # Detect encoding
-        raw_data = uploaded_file.read()
-        result = chardet.detect(raw_data)
-        encoding = result['encoding']
-
-        document = raw_data.decode(encoding)
+        if uploaded_file.type == "application/pdf":
+            st.write("PDF")
+        else:
+            # Detect encoding
+            raw_data = uploaded_file.read()
+            result = chardet.detect(raw_data)
+            encoding = result['encoding']
+            confidence = result['confidence']
+            if encoding is not None:#if confidence > 0:
+                document = raw_data.decode(encoding)
+            else:
+                st.write("here")
         st.success("File uploaded and decoded successfully!")
     except Exception as e:
         st.error(f"An error occurred while reading the file: {e}") 
@@ -144,6 +152,13 @@ if uploaded_file:
     #     except Exception as e:
     #         st.error(f"An error occurred: {e}")
 
+# Creating a dropdown list
+options = ['English', 'Arabic', 'Spanish', 'French', 'Dutch', 'Urdu']
+selected_option = st.selectbox('Select Language',options)
+
+# # Display the selected option
+# st.write('You selected:', selected_option)
+
 # Create a chat input field to allow the user to enter a message. This will display
 # automatically at the bottom of the page.
 if prompt := st.chat_input("What do you need help with regarding your document?"):
@@ -176,10 +191,12 @@ if prompt := st.chat_input("What do you need help with regarding your document?"
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
         except Exception as e:
             st.error(f"An error occurred: {e}")
-'''
-# TO DOs
-# 1. removed the text area, api should be called once for the doc
-# 2. decode issue because of the images, gifs in the doc
-# 3. language translation eg. what language this doc is in?
-# 4. dropdown option for the user, which lang to be converted in
-'''
+# '''
+# # Done 
+# # 1. removed the text area, api should be called once for the doc
+# # 2. decode issue because of the images, gifs in the doc
+# # 3. dropdown option for the user, which lang to be converted in
+# To Dos,
+# 1. language translation eg. what language this doc is in?
+# 2. find Python library that can read images and text
+# '''

@@ -1,3 +1,5 @@
 streamlit
 ai71
 chardet
+filetype
+PyPDF2
