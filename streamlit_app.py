@@ -225,8 +225,10 @@ if prompt := st.chat_input("What do you need help with regarding your document?"
 # # 1. removed the text area, api should be called once for the doc
 # # 2. decode issue because of the images, gifs in the doc
 # # 3. dropdown option for the user, which lang to be converted in
-# To Dos,
-# 4. language detection eg. what language this doc is in? 
+# 4. language detection eg. what language this doc is in? --> done by fareed
 # 5. find Python library that can read images and text --> done by fareed
 # 6. correct the response at the end "user:" --> done by fareed
+# To Dos,
+# 7. add a new feature - convert into any other language selected by the user (dropdown)
+# 8. we could take a text from the LLM and then make .ppt or pdf file from it
 # '''
