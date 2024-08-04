@@ -4,6 +4,7 @@ chardet
 filetype
 PyPDF2
 pymupdf
-
+python-docx
 langid
 pycountry
+markdown2

@@ -92,11 +92,20 @@ docXmart is your intelligent multilingual assistant for all document-related tas
 5. **Response Generation**: The AI71 API is called to generate responses for each document chunk.
 6. **Display Response**: The responses are displayed in real-time with a smooth flow to the user.
 
-## High-Level Flow Diagram
+## docXsmart Website
 
-Below is a high-level flow diagram for the docXmart project.
+Below is a high-level flow for the docXmart project.
+
 ![alt text](image.png)
 
+## General:
+![alt text](image-1.png)
+
+## Educational: 
+![alt text](image-2.png)
+
+## Legal:
+![alt text](image-3.png)
 
 ## Dependencies
 

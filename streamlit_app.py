@@ -7,6 +7,8 @@ import pycountry
 import re
 import asyncio
 import time
+from docx import Document
+import markdown2
 
 # Access the API key from Streamlit secrets
 ai71_api_key = st.secrets["AI71_API_KEY"]
@@ -152,11 +154,25 @@ async def generate_response(prompt_texts):
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
 
+def read_docx(file):
+    doc = Document(file)
+    return "\n".join([para.text for para in doc.paragraphs])
+
+def read_md(file):
+    content = file.read().decode("utf-8")
+    html_content = markdown2.markdown(content)
+    text_content = re.sub(r'<[^>]+>', '', html_content)
+    return text_content
+
 if uploaded_file:
     try:
         if uploaded_file.type == "application/pdf":
             with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
                 st.session_state.document = " ".join([page.get_text() for page in doc])
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            st.session_state.document = read_docx(uploaded_file)
+        elif uploaded_file.type == "text/markdown":
+            st.session_state.document = read_md(uploaded_file)
         else:
             raw_data = uploaded_file.read()
             result = chardet.detect(raw_data)
@@ -179,32 +195,32 @@ if uploaded_file:
 
         # Creating categorized dropdown list for action selection
         general_prompts = [
-        'Translate the document to another language',
-        'Generate text for PowerPoint slides based on the document',
-        'Review and correct grammatical errors in the document',
-        'Generate a concise summary of the document',
-        'Extract specific information such as dates, names, and places from the document',
-        'Determine the sentiment (positive, negative, neutral) expressed in the document',
-        'Create new text based on the document’s content',
-        'Expand on ideas or topics mentioned in the document',
-        'Identify the main theme or subject of the document',
-        'Rewrite sections of text to improve clarity or readability',
-        'Identify and classify entities such as people, organizations, locations, and dates in the document',
-        'Suggest improvements for style and readability of the document',
-        'Identify and list important keywords or phrases from the document',
-        'Analyze and identify recurring themes or topics within the document'
+            'Translate the document to another language',
+            'Generate text for PowerPoint slides based on the document',
+            'Review and correct grammatical errors in the document',
+            'Generate a concise summary of the document',
+            'Extract specific information such as dates, names, and places from the document',
+            'Determine the sentiment (positive, negative, neutral) expressed in the document',
+            'Create new text based on the document’s content',
+            'Expand on ideas or topics mentioned in the document',
+            'Identify the main theme or subject of the document',
+            'Rewrite sections of text to improve clarity or readability',
+            'Identify and classify entities such as people, organizations, locations, and dates in the document',
+            'Suggest improvements for style and readability of the document',
+            'Identify and list important keywords or phrases from the document',
+            'Analyze and identify recurring themes or topics within the document'
         ]
         educational_prompts = [
-        'Generate study notes based on the document',
-        'Summarize educational content for easier understanding',
-        'Create quiz questions based on the educational document',
-        'Develop lesson plans or teaching materials from the document',
-        'Provide examples and analogies to explain difficult concepts',
-        'Identify and suggest additional resources for further reading',
-        'Generate discussion questions to encourage critical thinking',
-        'Analyze the document for educational standards alignment',
-        'Suggest some possible visual aids that could be created based on the document',
-        'Assess the readability level of the educational content'
+            'Generate study notes based on the document',
+            'Summarize educational content for easier understanding',
+            'Create quiz questions based on the educational document',
+            'Develop lesson plans or teaching materials from the document',
+            'Provide examples and analogies to explain difficult concepts',
+            'Identify and suggest additional resources for further reading',
+            'Generate discussion questions to encourage critical thinking',
+            'Analyze the document for educational standards alignment',
+            'Suggest some possible visual aids that could be created based on the document',
+            'Assess the readability level of the educational content'
         ]
         legal_prompts = [
         'Summarize legal documents and extract key points',
@@ -218,7 +234,6 @@ if uploaded_file:
         'Generate a timeline of events based on the legal document',
         'Assess the strength of arguments in legal documents'
         ]
-
         prompt_categories = {
         'General': general_prompts,
         'Educational': educational_prompts,
