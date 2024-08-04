@@ -19,7 +19,6 @@ docXmart is your intelligent multilingual assistant for all document-related tas
    - Choose a category from the prompt list:
       - **General Prompts**:
           - Translate the document to another language
-          - Generate text for PowerPoint slides based on the document
           - Review and correct grammatical errors in the document
           - Generate a concise summary of the document
           - Extract specific information such as dates, names, and places from the document
@@ -33,6 +32,7 @@ docXmart is your intelligent multilingual assistant for all document-related tas
           - Identify and list important keywords or phrases from the document
           - Analyze and identify recurring themes or topics within the document
       - **Educational Prompts**:
+          - Generate text for PowerPoint slides based on the document
           - Generate study notes based on the document
           - Summarize educational content for easier understanding
           - Create quiz questions based on the educational document
