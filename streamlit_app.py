@@ -196,7 +196,6 @@ if uploaded_file:
         # Creating categorized dropdown list for action selection
         general_prompts = [
             'Translate the document to another language',
-            'Generate text for PowerPoint slides based on the document',
             'Review and correct grammatical errors in the document',
             'Generate a concise summary of the document',
             'Extract specific information such as dates, names, and places from the document',
@@ -211,6 +210,7 @@ if uploaded_file:
             'Analyze and identify recurring themes or topics within the document'
         ]
         educational_prompts = [
+            'Generate text for PowerPoint slides based on the document',
             'Generate study notes based on the document',
             'Summarize educational content for easier understanding',
             'Create quiz questions based on the educational document',
@@ -255,7 +255,7 @@ if uploaded_file:
         'General': general_prompts,
         'Educational': educational_prompts,
         'Legal': legal_prompts,
-        'Professional': professional_prompts
+        'Professional CV/Resume': professional_prompts
         }
 
         selected_category = st.selectbox('Choose a category', list(prompt_categories.keys()))
