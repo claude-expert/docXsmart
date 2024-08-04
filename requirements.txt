@@ -3,7 +3,7 @@ ai71
 chardet
 filetype
 PyPDF2
-fitz
-re
+pymupdf
+
 langid
 pycountry

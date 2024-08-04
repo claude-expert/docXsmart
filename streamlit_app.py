@@ -3,10 +3,10 @@ from ai71 import AI71
 import chardet
 import filetype
 import PyPDF2
-import fitz  # PyMuPDF
-import re 
+import fitz    
 import langid
 import pycountry
+import re
 
 # Access the API key from Streamlit secrets
 ai71_api_key = st.secrets["AI71_API_KEY"]
@@ -134,8 +134,67 @@ if uploaded_file:
         st.session_state.detected_language = get_full_language_name(detected_lang_code)
         
         st.success("Document uploaded and processed successfully!")
+        # Display detected language with a color indicator
+        if st.session_state.detected_language:
+            color = "#" + "".join([hex(ord(c))[2:] for c in st.session_state.detected_language])[:6]
+            st.markdown(f"""
+                <div class="language-indicator" style="background-color: {color}; color: white;">
+                    Detected Language: {st.session_state.detected_language}
+                </div>
+            """, unsafe_allow_html=True)
+
+        #st.write(selected_option = None)
+        if st.session_state.detected_language is not 'None':
+        #Creating a dropdown list
+            options = ['English','Arabic', 'Mandarin Chinese', 'Spanish', 'French', 'Portuguese',	'Russian',	'Japanese',	'German',	'Korean',	'Vietnamese',	'Turkish',	'Tamil',	'Urdu',	'Italian', 'Dutch' ]
+            selected_option = st.selectbox('Select your preferred target language for translation from the list below',options)
+            if st.session_state.detected_language != selected_option:
+             if st.session_state.detected_language is not None and selected_option is not None:
+                # Display the selected option
+                st.write(f"""Convert the selected document from {st.session_state.detected_language} to {selected_option} """)
+                prompt = ['Choose an option', 'Translate the document in selected language', 'Generate text for PowerPoint slides', 'Review and correct grammatical errors', 'Generate concise summary of the document ','Extract specific information, such as dates, names', 'Determine the sentiment (positive, negative, neutral) expressed in the document', 'Create new text based on the documents content', 'Expand on ideas or topics mentioned in the document', 'Identify the main theme or subject of the document','Rewrite sections of text to improve clarity or readability',	'Identify and classify entities such as people, organizations, locations and dates','Suggest improvements for style and readability', 'Identify and list important keywords or phrases from the document',	'Analyze and identify recurring themes or topics within the document' ]
+                selected_prompt = st.selectbox('Choose the target action prompt',prompt)
+                if selected_prompt != "Choose an option":
+                    if st.button("Submit"):
+                        st.session_state.messages.append({"role": "user", "content": prompt})
+                        
+
+                        if st.session_state.document:
+                            messages = [
+                                {
+                                    "role": "user",
+                                    "content": f"Here's a document: {st.session_state.document[:4000]} \n\n---\n\n translate from {st.session_state.detected_language} to {selected_option}. {prompt}",
+                                }
+                            ]
+
+                            with st.spinner("Generating response..."):
+                                try:
+                                    response = client.chat.completions.create(
+                                        model="tiiuae/falcon-180b-chat",
+                                        messages=messages
+                                    )
+
+                                    if response.choices and response.choices[0].message:
+                                        full_response = response.choices[0].message.content
+
+                                        # Remove "user:" and any following whitespace from the end of the response
+                                        full_response = re.sub(r'\s*user:\s*$', '', full_response, flags=re.IGNORECASE)
+
+                                        with st.chat_message("assistant"):
+                                            st.markdown(full_response)
+
+                                        st.session_state.messages.append({"role": "assistant", "content": full_response})
+                                except Exception as e:
+                                    st.error(f"An error occurred while generating the response: {e}")
+                        else:
+                            st.warning("Please upload a document before asking questions.")
+
+                    
+                
+
     except Exception as e:
         st.error(f"An error occurred while reading the file: {e}")
+
 
 # if uploaded_file and question:
 #     # Process the uploaded file and question.
@@ -167,57 +226,45 @@ if uploaded_file:
     #     except Exception as e:
     #         st.error(f"An error occurred: {e}")
 
-# Creating a dropdown list
-# options = ['English', 'Arabic', 'Spanish', 'French', 'Dutch', 'Urdu']
-# selected_option = st.selectbox('Select Language',options)
 
-# # Display the selected option
-# st.write('You selected:', selected_option)
 
-# Display detected language with a color indicator
-if st.session_state.detected_language:
-    color = "#" + "".join([hex(ord(c))[2:] for c in st.session_state.detected_language])[:6]
-    st.markdown(f"""
-        <div class="language-indicator" style="background-color: {color}; color: white;">
-            Detected Language: {st.session_state.detected_language}
-        </div>
-    """, unsafe_allow_html=True)
 
 # Chat input
-if prompt := st.chat_input("What do you need help with regarding your document?"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+#prompt = selected_prompt
+# if prompt := st.chat_input("What do you need help with regarding your document?"):
+#     st.session_state.messages.append({"role": "user", "content": prompt})
+#     with st.chat_message("user"):
+#         st.markdown(prompt)
 
-    if st.session_state.document:
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {st.session_state.document[:4000]} \n\n---\n\n {prompt}",
-            }
-        ]
+#     if st.session_state.document:
+#         messages = [
+#             {
+#                 "role": "user",
+#                 "content": f"Here's a document: {st.session_state.document[:4000]} \n\n---\n\n translate from {st.session_state.detected_language} to {selected_option}. {prompt}",
+#             }
+#         ]
 
-        with st.spinner("Generating response..."):
-            try:
-                response = client.chat.completions.create(
-                    model="tiiuae/falcon-180b-chat",
-                    messages=messages
-                )
+#         with st.spinner("Generating response..."):
+#             try:
+#                 response = client.chat.completions.create(
+#                     model="tiiuae/falcon-180b-chat",
+#                     messages=messages
+#                 )
 
-                if response.choices and response.choices[0].message:
-                    full_response = response.choices[0].message.content
+#                 if response.choices and response.choices[0].message:
+#                     full_response = response.choices[0].message.content
 
-                    # Remove "user:" and any following whitespace from the end of the response
-                    full_response = re.sub(r'\s*user:\s*$', '', full_response, flags=re.IGNORECASE)
+#                     # Remove "user:" and any following whitespace from the end of the response
+#                     full_response = re.sub(r'\s*user:\s*$', '', full_response, flags=re.IGNORECASE)
 
-                    with st.chat_message("assistant"):
-                        st.markdown(full_response)
+#                     with st.chat_message("assistant"):
+#                         st.markdown(full_response)
 
-                    st.session_state.messages.append({"role": "assistant", "content": full_response})
-            except Exception as e:
-                st.error(f"An error occurred while generating the response: {e}")
-    else:
-        st.warning("Please upload a document before asking questions.")
+#                     st.session_state.messages.append({"role": "assistant", "content": full_response})
+#             except Exception as e:
+#                 st.error(f"An error occurred while generating the response: {e}")
+#     else:
+#         st.warning("Please upload a document before asking questions.")
 
 
 # '''
