@@ -54,7 +54,18 @@ docXmart is your intelligent multilingual assistant for all document-related tas
           - Review and correct legal document formatting and structure
           - Generate a timeline of events based on the legal document
           - Assess the strength of arguments in legal documents
-
+          ### Professional Prompts
+          - Review and improve a resume
+          - Summarize a CV
+          - Translate a resume to another language
+          - Extract key skills and qualifications from a   resume
+          - Generate a professional summary based on a   resume
+          - Tailor a resume for a specific job
+          - Identify strengths and weaknesses in a resume
+          - Convert a resume to a different format
+          - Review a resume for ATS (Applicant Tracking   System) optimization
+          - Create a cover letter based on a resume
+        
 3. **Submit Your Request**:
    - Click 'Submit' to process your document.
 
@@ -106,6 +117,9 @@ Below is a high-level flow for the docXmart project.
 
 ## Legal:
 ![alt text](image-3.png)
+
+## Professional:
+![alt text](image-4.png)
 
 ## Dependencies
 

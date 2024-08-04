@@ -234,12 +234,29 @@ if uploaded_file:
         'Generate a timeline of events based on the legal document',
         'Assess the strength of arguments in legal documents'
         ]
+        professional_prompts = [
+        'Review and improve a resume',
+        'Summarize a CV',
+        'Translate a resume to another language',
+        'Extract key skills and qualifications from a resume',
+        'Generate a professional summary based on a resume',
+        'Tailor a resume for a specific job',
+        'Identify strengths and weaknesses in a resume',
+        'Convert a resume to a different format',
+        'Review a resume for ATS (Applicant Tracking System) optimization',
+        'Create a cover letter based on a resume',
+        'Highlight achievements and accomplishments in a resume',
+        'Suggest action verbs and keywords for a resume',
+        'Provide feedback on the layout and design of a resume',
+        'Compare a resume against a job description',
+        'Recommend improvements for a LinkedIn profile based on a resume'
+        ]
         prompt_categories = {
         'General': general_prompts,
         'Educational': educational_prompts,
-        'Legal': legal_prompts
+        'Legal': legal_prompts,
+        'Professional': professional_prompts
         }
-
 
         selected_category = st.selectbox('Choose a category', list(prompt_categories.keys()))
         selected_prompt = st.selectbox('Choose the target action prompt', prompt_categories[selected_category])
