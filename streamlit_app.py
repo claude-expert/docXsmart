@@ -237,7 +237,6 @@ if uploaded_file:
         professional_prompts = [
         'Review and improve a resume',
         'Summarize a CV',
-        'Translate a resume to another language',
         'Extract key skills and qualifications from a resume',
         'Generate a professional summary based on a resume',
         'Tailor a resume for a specific job',
