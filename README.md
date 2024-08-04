@@ -1,5 +1,5 @@
 # docXmart 📃
-
+![alt text](assets/docxmart-logo.png)
 docXmart is your intelligent multilingual assistant for all document-related tasks, including summarizing, extracting information, translating, and more. It leverages the AI71 API to provide accurate and detailed responses based on user inputs.
 
 ## Features
@@ -106,19 +106,19 @@ docXmart is your intelligent multilingual assistant for all document-related tas
 
 Below is a high-level flow for the docXmart project.
 
-![alt text](image.png)
+![alt text](assets/image.png)
 
 ## General:
-![alt text](image-1.png)
+![alt text](assets/image-1.png)
 
 ## Educational: 
-![alt text](image-2.png)
+![alt text](assets/image-2.png)
 
 ## Legal:
-![alt text](image-3.png)
+![alt text](assets/image-3.png)
 
 ## Professional:
-![alt text](image-4.png)
+![alt text](assets/image-4.png)
 
 ## Dependencies
 
