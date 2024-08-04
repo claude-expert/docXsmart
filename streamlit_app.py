@@ -1,12 +1,12 @@
 import streamlit as st
 from ai71 import AI71
 import chardet
-import filetype
-import PyPDF2
-import fitz    
+import fitz
 import langid
 import pycountry
 import re
+import asyncio
+import time
 
 # Access the API key from Streamlit secrets
 ai71_api_key = st.secrets["AI71_API_KEY"]
@@ -25,23 +25,40 @@ st.markdown(
     """
     <style>
     .main {
-        background-color: #ffffff;
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
     .sidebar .sidebar-content {
         background-color: #1034A6;
+        padding: 20px;
+        border-radius: 10px;
     }
     .stButton>button {
         color: #ffffff;
         background-color: #2454FF;
+        border-radius: 10px;
+        padding: 10px 20px;
+    }
+    .stButton>button:hover {
+        background-color: #002FA7;
+        color: #ffffff;
     }
     .stChatMessage--assistant {
         background-color: #e0e0e0;
+        border-radius: 10px;
+        padding: 10px;
     }
     .stChatMessage--user {
         background-color: #e0e0e0;
+        border-radius: 10px;
+        padding: 10px;
     }
     .title {
         color: #1034A6;
+        font-size: 2em;
+        margin-bottom: 20px;
     }
     </style>
     """,
@@ -49,7 +66,6 @@ st.markdown(
 )
 
 # Sidebar
-#st.sidebar.image("assets/docXmart.png", use_column_width=True)
 st.sidebar.write("""
 **docXmart📃** is your intelligent multilingual assistant for all document-related tasks.
 """)
@@ -58,17 +74,17 @@ st.sidebar.header("How to Use docXmart📃")
 st.sidebar.write("""
 1. **Upload Your Document**:
    - Provide a document in .txt, .md, .pdf, or .docx format.
-   - Describe what you need help with (e.g., summary, important highlights, translation).
 
-2. **Submit the Information**:
-   - Use the input field to enter your instructions.
+2. **Describe Your Request**:
+   - Choose a task from the prompt list (e.g., summarize, extract information, translate).
 
-3. **Get a Response**:
-   - docXmart will process your input and generate a detailed response based on your instructions.
+3. **Submit Your Request**:
+   - Click 'Submit' to process your document.
 
-4. **Review and Take Action**:
-   - Read the response provided by docXmart and follow the suggested steps.
+4. **Review the Response**:
+   - docXmart will analyze your document and generate a detailed response based on your instructions.
 """)
+
 st.sidebar.markdown("### Social Links:")
 st.sidebar.write("🔗 [GitHub](https://www.github.com)")
 
@@ -85,16 +101,25 @@ def get_full_language_name(lang_code):
     except AttributeError:
         return lang_code
 
-# Create a session state variable to store the chat messages. This ensures that the
-# messages persist across reruns.
-# if "messages" not in st.session_state:
-#     st.session_state.messages = []
-#     instruction = "Hi! This is docXmart. Please upload your document and mention what you need help with. For example; 'Please summarize this document' or 'Translate this document to French'."
-#     st.session_state.messages.append({"role": "assistant", "content": instruction})
+# Function to split document into chunks
+def split_document(text, max_length=3000):
+    chunks = []
+    while len(text) > max_length:
+        split_index = text.rfind('\n', 0, max_length)
+        if split_index == -1:
+            split_index = max_length
+        chunks.append(text[:split_index])
+        text = text[split_index:]
+    chunks.append(text)
+    return chunks
+
+# Create a session state variable to store the chat messages and document info
 if "messages" not in st.session_state:
     st.session_state.messages = []
     st.session_state.document = ""
     st.session_state.detected_language = None
+    st.session_state.document_chunks = []
+    st.session_state.current_chunk = 0
 
 # Display the existing chat messages via `st.chat_message`.
 for message in st.session_state.messages:
@@ -102,21 +127,30 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Let the user upload a file via `st.file_uploader`.
-# uploaded_file = st.file_uploader(
-#     "Upload a document (.txt , .md , .docx or .pdf)", type=("txt", "md", "pdf", "docx")
-# )
-
-# Ask the user for a question via `st.text_area`.
-# question = st.text_area(
-#     "What do you need help with regarding the document?",
-#     placeholder="Can you give me a short summary?",
-#     disabled=not uploaded_file,
-# )
-
 uploaded_file = st.file_uploader(
     "Upload a document (.txt , .md , .docx or .pdf)", type=("txt", "md", "pdf", "docx")
 )
 
+async def generate_response(prompt_texts):
+    full_response = ""
+    response_placeholder = st.empty()
+    for i, prompt_text in enumerate(prompt_texts):
+        messages = [{"role": "user", "content": prompt_text}]
+        try:
+            response = await asyncio.to_thread(client.chat.completions.create,
+                                               model="tiiuae/falcon-180b-chat",
+                                               messages=messages)
+            if response.choices and response.choices[0].message:
+                chunk_response = response.choices[0].message.content
+                chunk_response = re.sub(r'\s*user:\s*$', '', chunk_response, flags=re.IGNORECASE)
+                full_response += chunk_response + " "
+                response_placeholder.markdown(full_response)
+                time.sleep(1)  # Simulate a delay for streaming effect
+        except Exception as e:
+            st.error(f"An error occurred while generating the response for chunk {i+1}: {e}")
+            st.error(f"Details: {str(e)}")
+
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 if uploaded_file:
     try:
@@ -132,7 +166,7 @@ if uploaded_file:
         # Detect language using langid
         detected_lang_code, _ = langid.classify(st.session_state.document)
         st.session_state.detected_language = get_full_language_name(detected_lang_code)
-        
+
         st.success("Document uploaded and processed successfully!")
         # Display detected language with a color indicator
         if st.session_state.detected_language:
@@ -143,139 +177,80 @@ if uploaded_file:
                 </div>
             """, unsafe_allow_html=True)
 
-        #st.write(selected_option = None)
-        if st.session_state.detected_language is not 'None':
-        #Creating a dropdown list
-            options = ['English','Arabic', 'Mandarin Chinese', 'Spanish', 'French', 'Portuguese',	'Russian',	'Japanese',	'German',	'Korean',	'Vietnamese',	'Turkish',	'Tamil',	'Urdu',	'Italian', 'Dutch' ]
-            selected_option = st.selectbox('Select your preferred target language for translation from the list below',options)
-            if st.session_state.detected_language != selected_option:
-             if st.session_state.detected_language is not None and selected_option is not None:
-                # Display the selected option
-                st.write(f"""Convert the selected document from {st.session_state.detected_language} to {selected_option} """)
-                prompt = ['Choose an option', 'Translate the document in selected language', 'Generate text for PowerPoint slides', 'Review and correct grammatical errors', 'Generate concise summary of the document ','Extract specific information, such as dates, names', 'Determine the sentiment (positive, negative, neutral) expressed in the document', 'Create new text based on the documents content', 'Expand on ideas or topics mentioned in the document', 'Identify the main theme or subject of the document','Rewrite sections of text to improve clarity or readability',	'Identify and classify entities such as people, organizations, locations and dates','Suggest improvements for style and readability', 'Identify and list important keywords or phrases from the document',	'Analyze and identify recurring themes or topics within the document' ]
-                selected_prompt = st.selectbox('Choose the target action prompt',prompt)
-                if selected_prompt != "Choose an option":
-                    if st.button("Submit"):
-                        st.session_state.messages.append({"role": "user", "content": prompt})
-                        
+        # Creating categorized dropdown list for action selection
+        general_prompts = [
+        'Translate the document to another language',
+        'Generate text for PowerPoint slides based on the document',
+        'Review and correct grammatical errors in the document',
+        'Generate a concise summary of the document',
+        'Extract specific information such as dates, names, and places from the document',
+        'Determine the sentiment (positive, negative, neutral) expressed in the document',
+        'Create new text based on the document’s content',
+        'Expand on ideas or topics mentioned in the document',
+        'Identify the main theme or subject of the document',
+        'Rewrite sections of text to improve clarity or readability',
+        'Identify and classify entities such as people, organizations, locations, and dates in the document',
+        'Suggest improvements for style and readability of the document',
+        'Identify and list important keywords or phrases from the document',
+        'Analyze and identify recurring themes or topics within the document'
+        ]
+        educational_prompts = [
+        'Generate study notes based on the document',
+        'Summarize educational content for easier understanding',
+        'Create quiz questions based on the educational document',
+        'Develop lesson plans or teaching materials from the document',
+        'Provide examples and analogies to explain difficult concepts',
+        'Identify and suggest additional resources for further reading',
+        'Generate discussion questions to encourage critical thinking',
+        'Analyze the document for educational standards alignment',
+        'Suggest some possible visual aids that could be created based on the document',
+        'Assess the readability level of the educational content'
+        ]
+        legal_prompts = [
+        'Summarize legal documents and extract key points',
+        'Translate legal documents to another language',
+        'Identify key legal terms and definitions within the document',
+        'Check for compliance with legal standards and regulations',
+        'Draft legal contracts or agreements based on provided information',
+        'Analyze and identify potential legal risks or issues',
+        'Provide legal citations and references for document content',
+        'Review and correct legal document formatting and structure',
+        'Generate a timeline of events based on the legal document',
+        'Assess the strength of arguments in legal documents'
+        ]
 
-                        if st.session_state.document:
-                            messages = [
-                                {
-                                    "role": "user",
-                                    "content": f"Here's a document: {st.session_state.document[:4000]} \n\n---\n\n translate from {st.session_state.detected_language} to {selected_option}. {prompt}",
-                                }
-                            ]
+        prompt_categories = {
+        'General': general_prompts,
+        'Educational': educational_prompts,
+        'Legal': legal_prompts
+        }
 
-                            with st.spinner("Generating response..."):
-                                try:
-                                    response = client.chat.completions.create(
-                                        model="tiiuae/falcon-180b-chat",
-                                        messages=messages
-                                    )
 
-                                    if response.choices and response.choices[0].message:
-                                        full_response = response.choices[0].message.content
+        selected_category = st.selectbox('Choose a category', list(prompt_categories.keys()))
+        selected_prompt = st.selectbox('Choose the target action prompt', prompt_categories[selected_category])
 
-                                        # Remove "user:" and any following whitespace from the end of the response
-                                        full_response = re.sub(r'\s*user:\s*$', '', full_response, flags=re.IGNORECASE)
+        # Show language selection only if "Translate" is selected
+        if selected_prompt in ['Translate the document to another language', 'Translate legal documents to another language']:
+            target_languages = [
+                'English', 'Arabic', 'Mandarin Chinese', 'Spanish', 'French', 
+                'Portuguese', 'Russian', 'Japanese', 'German', 'Korean', 
+                'Vietnamese', 'Turkish', 'Tamil', 'Urdu', 'Italian', 'Dutch'
+            ]
+            selected_language = st.selectbox('Select your preferred target language for translation', target_languages)
 
-                                        with st.chat_message("assistant"):
-                                            st.markdown(full_response)
+        if st.button("Submit"):
+            if st.session_state.document:
+                document_chunks = split_document(st.session_state.document)
+                st.session_state.document_chunks = document_chunks
 
-                                        st.session_state.messages.append({"role": "assistant", "content": full_response})
-                                except Exception as e:
-                                    st.error(f"An error occurred while generating the response: {e}")
-                        else:
-                            st.warning("Please upload a document before asking questions.")
+                if selected_prompt in ['Translate the document to another language', 'Translate legal documents to another language'] and selected_language:
+                    prompt_texts = [f"Please translate the following document from {st.session_state.detected_language} to {selected_language}:\n\n{chunk}" for chunk in document_chunks]
+                else:
+                    prompt_texts = [f"Please {selected_prompt.lower()} the following document:\n\n{chunk}" for chunk in document_chunks]
 
-                    
-                
+                with st.spinner("Generating response..."):
+                    asyncio.run(generate_response(prompt_texts))
 
     except Exception as e:
         st.error(f"An error occurred while reading the file: {e}")
-
-
-# if uploaded_file and question:
-#     # Process the uploaded file and question.
-#     document = uploaded_file.read().decode()
-    # messages = [
-    #     {
-    #         "role": "user",
-    #         "content": f"Here's a document: {document} \n\n---\n\n {question}",
-    #     }
-    # ]
-
-    # Generate a response using the AI71 API.
-    # with st.spinner("Generating response..."):
-    #     try:
-    #         response = client.chat.completions.create(
-    #             model="tiiuae/falcon-180b-chat",
-    #             messages=messages
-    #         )
-
-    #         # Collect and concatenate response chunks
-    #         if response.choices and response.choices[0].message:
-    #             full_response = response.choices[0].message.content
-
-    #             # Stream the full response to the chat using `st.write`
-    #             with st.chat_message("assistant"):
-    #                 st.markdown(full_response)
-
-    #             st.session_state.messages.append({"role": "assistant", "content": full_response})
-    #     except Exception as e:
-    #         st.error(f"An error occurred: {e}")
-
-
-
-
-# Chat input
-#prompt = selected_prompt
-# if prompt := st.chat_input("What do you need help with regarding your document?"):
-#     st.session_state.messages.append({"role": "user", "content": prompt})
-#     with st.chat_message("user"):
-#         st.markdown(prompt)
-
-#     if st.session_state.document:
-#         messages = [
-#             {
-#                 "role": "user",
-#                 "content": f"Here's a document: {st.session_state.document[:4000]} \n\n---\n\n translate from {st.session_state.detected_language} to {selected_option}. {prompt}",
-#             }
-#         ]
-
-#         with st.spinner("Generating response..."):
-#             try:
-#                 response = client.chat.completions.create(
-#                     model="tiiuae/falcon-180b-chat",
-#                     messages=messages
-#                 )
-
-#                 if response.choices and response.choices[0].message:
-#                     full_response = response.choices[0].message.content
-
-#                     # Remove "user:" and any following whitespace from the end of the response
-#                     full_response = re.sub(r'\s*user:\s*$', '', full_response, flags=re.IGNORECASE)
-
-#                     with st.chat_message("assistant"):
-#                         st.markdown(full_response)
-
-#                     st.session_state.messages.append({"role": "assistant", "content": full_response})
-#             except Exception as e:
-#                 st.error(f"An error occurred while generating the response: {e}")
-#     else:
-#         st.warning("Please upload a document before asking questions.")
-
-
-# '''
-# # Done 
-# # 1. removed the text area, api should be called once for the doc
-# # 2. decode issue because of the images, gifs in the doc
-# # 3. dropdown option for the user, which lang to be converted in
-# 4. language detection eg. what language this doc is in? --> done by fareed
-# 5. find Python library that can read images and text --> done by fareed
-# 6. correct the response at the end "user:" --> done by fareed
-# To Dos,
-# 7. add a new feature - convert into any other language selected by the user (dropdown)
-# 8. we could take a text from the LLM and then make .ppt or pdf file from it
-# '''
+        st.error(f"Details: {str(e)}")
