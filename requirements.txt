@@ -1,2 +1,9 @@
 streamlit
 ai71
+chardet
+filetype
+PyPDF2
+pymupdf
+
+langid
+pycountry
